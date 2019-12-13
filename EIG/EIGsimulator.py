@@ -1,6 +1,6 @@
-########################
-## EIG Simulator code ##
-########################
+###################
+## EIG Simulator ##
+###################
 
 ## IMPORTS ## 
 
@@ -56,6 +56,8 @@ class EIGSimulator:
         for node in self.nodes:
             node.receive()
 
+
+## Simple smoke test method ##
 
 def test():
     simulator = EIGSimulator()

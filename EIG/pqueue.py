@@ -1,6 +1,6 @@
-#########################
-# Simple Priority Queue #
-#########################
+###########################
+## Simple Priority Queue ##
+###########################
 
 # Heavily inspired by geeksforgeeks
 

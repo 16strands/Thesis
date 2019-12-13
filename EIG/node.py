@@ -1,10 +1,19 @@
-################
-# Node classes #
-################
+##################
+## Node classes ##
+##################
+
+
+## Imports ##
 
 from random import randint
 
+
+## Constants ##
+
 TIMEOUT = 200 # TODO figure out good timeout number
+
+
+## Node Superclass ##
 
 class Node:
     def __init__(self, name):
@@ -25,6 +34,9 @@ class Node:
     def receive(self, eventQueue): # event triggers at time specified at broadcast time
         raise NotImplementedError("Receive method must be implemented by subclasses")
 
+
+## Honest Node ##
+
 class HonestNode(Node):
 
     def __init__(self, name, val):
@@ -40,12 +52,19 @@ class HonestNode(Node):
         pass # TODO: figure out decision function based on structure of EIG tree
 
     def broadcast(self, eventQueue, t):
+        # lower level send and recieve methods than broadcast
+        # Broadcast "makes this thing happen"
+        # recieve method stores bit that stores whether we're in broadcast
         eventQueue.enqueue(("current string of vals alpha"), 200) # TODO: this is not right at all
         eventQueue.enqueue(("TIMEOUT"), 200+TIMEOUT)
 
     def receive(self, eventQueue):
+        # If curently in broadcast do this , otherwise do that
+        # or separate broadcast recieve funtion
         pass # TODO
 
+
+## Byzantine Node ##
 
 class ByzantineNode(Node):
 
@@ -53,7 +72,7 @@ class ByzantineNode(Node):
         Node.__init__(self, name)
         self.range = range
         self.initialValue = randint(range[0], range[1])
-        self.tree = {("root", self.initialValue)} # TODO: Figure out how to structure this better
+        self.tree = {("root", self.initialValue)} # TODO: can this move to superclass?
 
     def __repr__(self):
         rep = "(Name: " + self.name + ", InitVal: " + str(self.initialValue) + ")"
@@ -69,10 +88,13 @@ class ByzantineNode(Node):
         pass # TODO
 
 
+## Crashed Node ##
+
 class CrashedNode(Node): # TODO: make crashed nodes be able to crash after a certain time
 
-    def __init__(self, name):
+    def __init__(self, name, crashTime):
         Node.__init__(self, name)
+        self.crashTime = crashTime
 
     def __repr__(self):
         rep = "(Name: " + self.name + ", InitVal: CRASHED)"
@@ -83,12 +105,18 @@ class CrashedNode(Node): # TODO: make crashed nodes be able to crash after a cer
 
     def broadcast(self, eventQueue, t):
         pass
-        
 
-class EIGNode():  # what does an EIG tree even look like bruh...
+
+## EIG Node ##
+
+# TODO: Move this to separate file
+
+class EIGNode():  # TODO: what does an EIG tree look like
     def __init__(self, level, val, children):
         self.level = level
         self.val = val
         self.children = children
 
+
+# STring and a val!! like n1n2n3, 4
 
