@@ -71,7 +71,13 @@ recieve store value in list (if we have them all, run END OF ROUND)
     
 !!! add param for ^ !!!
     
-figure out some model of how lcocks get off 
+figure out some model of how clocks get off 
      buggy?
      something happens?
      drift?
+     
+     
+     
+### NEW QUESTIONS
+* Should the eventQueue be empty at the end of each round?
+* GSR is established by setting a latency range at t=0 and then the range decreases until the GSR and then the range becomes 1 and the clocks are synchronized 
