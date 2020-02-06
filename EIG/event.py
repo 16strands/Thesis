@@ -18,7 +18,6 @@ class ReceiveEvent(GlobalEvent):
         return "ReceiveEvent(" + str(self.message) + ") from: " + str(self.sender) + " to: " + str(self.receiver)
 
     def dispatch(self):
-        print("DISPATCHING RECEIVE EVENT")
         self.receiver.receive(self.sender, self.message, self.network)
 
 
@@ -37,7 +36,6 @@ class TimeoutEvent(GlobalEvent):
     #             self.network.removeFromQueue(item)
 
     def dispatch(self):
-        print("DISPATCHING TIMEOUT EVENT")
         self.sender.timeout(self.network)
 
 

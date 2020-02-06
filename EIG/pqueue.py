@@ -37,7 +37,6 @@ class PriorityQueue(object):
                     min = i
             item = self.pqueue[min]
             del self.pqueue[min]
-            print("SELECTED EVENT WITH PRIORITY " + str(item[1]))
             return item[0], item[1]
         except IndexError:
             print()

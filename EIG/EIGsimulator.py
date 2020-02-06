@@ -13,8 +13,8 @@ import logging
 
 ## CONSTANTS ##
 
-HONEST_COUNT = 4
-BYZ_COUNT = 1
+HONEST_COUNT = 7
+BYZ_COUNT = 3
 # CRASHED_COUNT = 0 # could check to make sure it's also crash tolerant
 START_VAL_HONEST = 0
 TOTAL_COUNT = BYZ_COUNT + HONEST_COUNT
@@ -22,7 +22,7 @@ MAX_TOLERATED_BYZ = int(TOTAL_COUNT / 3) + 1  # TODO: check this math lol
 VAL_RANGE = (0, 30)
 START_LATENCY_MAX = 500
 TIMEOUT = 200  # time after current time that timeout will be executed
-EVENT_TRACE = True # enable for verbose mode
+EVENT_TRACE = False # enable for verbose mode
 GSR = 5
 
 
@@ -72,8 +72,22 @@ class EIGSimulator:
 
     def runEIGProtocol(self):
         self.log.debug("Running EIG protocol")
+        honestDecisions = []
+        byzDecisions = []
         for r in range(MAX_TOLERATED_BYZ):
             self.executeRound(r)
+            print("round complete")
+        print("hello")
+        for process in self.processes:
+            print("hi")
+            decision = process.decide(process.getEIGRoot(), self)
+            self.log.debug(str(process) + "DECISION: " + str(decision))
+            if process.isHonest():
+                honestDecisions.append(decision)
+            else:
+                byzDecisions.append(decision)
+        self.log.debug("HONEST DECISION VECTOR: " + str(honestDecisions))
+        self.log.debug("BYZANTINE DECISION VECTOR: " + str(byzDecisions))
         self.log.debug("EIG protocol finished")
 
     def executeRound(self, round):
@@ -87,7 +101,6 @@ class EIGSimulator:
             self.log.debug(str(process) + "events added to queue")
         # Execute event queue
         self.log.debug("All events added to queue. Executing queue")
-        print(self.eventQueue)
         while not self.eventQueue.isEmpty():
             e, t = self.eventQueue.pop()
             if EVENT_TRACE:
@@ -126,6 +139,9 @@ class EIGSimulator:
 
     def addToQueue(self, event, t):
         self.eventQueue.enqueue((event, t))
+
+    def getMaxByz(self):
+        return MAX_TOLERATED_BYZ
 
 
 
