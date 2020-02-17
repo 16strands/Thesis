@@ -44,3 +44,40 @@ QUESTIONS
 * "eig as subroutine might be weird but gotta do it"
 * Should byz nodes even keep track of a tree?
     - maybe if they're logical?
+
+
+
+EIG SIMulator has absolute time, event sheudling shoudl be priority queue qith key as time when it happens 
+latency can be random generated with noise 
+upon send, add recieve at the time it will offur -> look up latency and current time 
+
+how to model local clock
+    they use it for timeout 
+    calculate next timeout based on previous timeout
+    add in time for things to neve rbe processed out of order
+    timeout method (end of round method for nodes, where theyd deicde tmoove on and treat everythign else as null)
+    
+asynchrony is that timtouts are all different / off
+    maybe start off, wrong to begin with
+    or get off later 
+read realistic (real) literature on how this happens 
+
+clock synchronization protocols probably exist, look at them to figure out how rounds are controlled 
+
+maybe randomly generate a GSR -> genearte END OF ROUND signal for every party 
+
+END OF ROUND FUNCTION separate from recieve
+recieve store value in list (if we have them all, run END OF ROUND)
+    
+!!! add param for ^ !!!
+    
+figure out some model of how clocks get off 
+     buggy?
+     something happens?
+     drift?
+     
+     
+     
+### NEW QUESTIONS
+* Should the eventQueue be empty at the end of each round?
+* GSR is established by setting a latency range at t=0 and then the range decreases until the GSR and then the range becomes 1 and the clocks are synchronized 
