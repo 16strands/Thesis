@@ -11,6 +11,7 @@ import process
 from random import shuffle
 from numpy import random
 import logging
+import heapq
 
 ## CONSTANTS ##
 
@@ -38,7 +39,8 @@ class EIGSimulator:
         self.log = self.__setUpLogger()
         self.byzProcesses = self.__initByzProcesses()
         self.honestProcesses = self.__initHonestProcesses()
-        self.eventQueue = PriorityQueue()
+        self.eventQueue = []
+        heapq.heapify(self.eventQueue)
         self.processes = self.honestProcesses + self.byzProcesses
         shuffle(self.processes)
         self.round = 1
@@ -104,8 +106,9 @@ class EIGSimulator:
             #self.log.debug(str(process) + "events added to queue")
         # Execute event queue
         self.log.debug("All events added to queue. Executing queue")
-        while not self.eventQueue.isEmpty():
-            e, t = self.eventQueue.pop()
+        self.log.debug("EventQueue size: " + str(len(self.eventQueue)))
+        while len(self.eventQueue) > 0:
+            t, _, e = heapq.heappop(self.eventQueue)
             if EVENT_TRACE:
                 print(str(e) + " at time " + str(t))
             #self.log.debug("Dispatching " + str(e))
@@ -137,11 +140,11 @@ class EIGSimulator:
     def getRoundNum(self):
         return self.round
 
-    def removeFromQueue(self, event):
-        self.eventQueue.removeByEvent(event)
+    # def removeFromQueue(self, event):
+    #     self.eventQueue.removeByEvent(event)
 
     def addToQueue(self, event, t):
-        self.eventQueue.enqueue((event, t))
+        heapq.heappush(self.eventQueue, (t, id(event), event))
 
     def getMaxByz(self):
         return MAX_TOLERATED_BYZ
