@@ -17,6 +17,7 @@ class ReceiveEvent(GlobalEvent):
     def __str__(self):
         return "ReceiveEvent(" + str(self.message) + ") from: " + str(self.sender) + " to: " + str(self.receiver)
 
+
     def dispatch(self):
         self.receiver.receive(self.sender, self.message, self.network)
 

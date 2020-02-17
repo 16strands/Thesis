@@ -24,7 +24,11 @@ class Process:
         self.round = 0
 
     def __repr__(self):
-        raise NotImplementedError("Repr must be implemented by subclasses")
+        rep = "(Name: " + str(self.name) + ", InitVal: " + str(self.initialValue) + ") "
+        return rep
+    #
+    # def __repr__(self):
+    #     return str(self.name)
 
     def isHonest(self):
         raise NotImplementedError("isHonest must be implemented by subclasses")
@@ -38,7 +42,7 @@ class Process:
         # Broadcast "makes this thing happen"
         # receive method stores bit that stores whether we're in broadcast
         for node in self.tree.getLevel(network.getRoundNum() - 1):
-            if self.name not in node.parents:
+            if self not in node.getParents():
                 if node.val != None:
                     self.broadcast(node, network, latency)
         # self.lastTimeoutQueued = TimeoutEvent(self, network)
@@ -63,7 +67,7 @@ class Process:
                 else:
                     repeated[val] = 1
             for val in repeated.keys():
-                if repeated[val] >= len(network.getProcesses()) - len(node.parents) - network.getMaxByz():
+                if repeated[val] >= len(network.getProcesses()) - len(node.getParents()) - network.getMaxByz():
                     return val
 
     def receive(self, sender, node, network):
@@ -74,7 +78,7 @@ class Process:
         newParents.append(sender)
         newVal = node.val
         newNode = EIGNode(newVal, newParents)
-        node.updateChildren(newNode)
+        self.tree.getNodeFromParents(node.parents).updateChildren(newNode)
         self.currentLevel.append(newNode)
         self.receivedFromThisRound.append(sender)
         # if len(self.currentLevel) >= len(network.getProcesses()):
@@ -89,6 +93,9 @@ class Process:
     def getEIGRoot(self):
         return self.tree.getRoot()
 
+    def printEIGLevels(self):
+        return self.tree.printVals()
+
 ## Honest Process ##
 
 class HonestProcess(Process):
@@ -101,18 +108,15 @@ class HonestProcess(Process):
         self.lastTimeoutQueued = None
         self.receivedFromThisRound = []
 
-    def __repr__(self):
-        rep = "(Name: " + self.name + ", InitVal: " + str(self.initialValue) + ")"
-        return rep
-
     def isHonest(self):
         return True
 
     # Enqueues one event for every other process
     def broadcast(self, node, network, latency):
         for receiver in network.getProcesses():
-            event = ReceiveEvent(self, receiver, node, network)
-            network.addToQueue(event, latency)
+            if receiver not in node.getParents():
+                event = ReceiveEvent(self, receiver, node, network)
+                network.addToQueue(event, latency)
 
     # def timeout(self, network):  # no, processes are recieving multiple messages from each other processor during each round
     #     timedOut = []
@@ -138,17 +142,14 @@ class ByzantineProcess(Process):
         self.receivedFromThisRound = []
         self.currentLevel = []
 
-    def __repr__(self):
-        rep = "(Name: " + self.name + ", InitVal: " + str(self.initialValue) + ")"
-        return rep
-
     def isHonest(self):
         return False
 
     def broadcast(self, node, network, latency):
         for receiver in network.getProcesses():
-            event = ReceiveEvent(self, receiver, node, network)
-            network.addToQueue(event, latency)
+            if receiver not in node.getParents():
+                event = ReceiveEvent(self, receiver, node, network)
+                network.addToQueue(event, latency)
 
 
 ## Crashed Process ##
@@ -158,10 +159,6 @@ class CrashedProcess(Process): # TODO: make crashed processes be able to crash a
     def __init__(self, name, crashTime):
         Process.__init__(self, name)
         self.crashTime = crashTime
-
-    def __repr__(self):
-        rep = "(Name: " + self.name + ", InitVal: CRASHED)"
-        return rep
 
     def decide(self):
         pass
