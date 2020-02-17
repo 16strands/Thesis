@@ -29,14 +29,7 @@ class TimeoutEvent(GlobalEvent):
     def __str__(self):
         return "TimeoutEvent(" + str(self.sender) + ")"
 
-    # def dispatch(self):
-    #     print("DISPATCHING TIMEOUT EVENT")
-    #     for item in self.network.eventQueue.pqueue:
-    #         if item[0].sender == self.sender:
-    #             print("REMOVING " + str(item) + " FROM QUEUE")
-    #             self.network.removeFromQueue(item)
-
     def dispatch(self):
-        self.sender.timeout(self.network)
+        self.sender.timeout()
 
 

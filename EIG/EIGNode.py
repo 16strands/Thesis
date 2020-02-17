@@ -34,6 +34,8 @@ class EIGTree():
             rep += "Level " + str(i) + ": " + str(self.tree[i]) + "\n"
         return rep
 
+
+    # bottleneck
     def getNodeFromParents(self, parents):
         thisNode = self.getRoot()
         thisParents = None

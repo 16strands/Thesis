@@ -15,8 +15,8 @@ import heapq
 
 ## CONSTANTS ##
 
-HONEST_COUNT = 7
-BYZ_COUNT = 7
+HONEST_COUNT = 10
+BYZ_COUNT = 2
 # CRASHED_COUNT = 0 # could check to make sure it's also crash tolerant
 TOTAL_COUNT = BYZ_COUNT + HONEST_COUNT
 MAX_TOLERATED_BYZ = int(TOTAL_COUNT / 3) + 1  # TODO: check this
@@ -101,9 +101,6 @@ class EIGSimulator:
         for process in self.processes:
             latency = self.getProcessLatency()
             process.sendToAll(self, latency)
-            # timeoutEvent = process.sendToAll(self, latency)
-            # self.addToQueue(timeoutEvent, TIMEOUT)  # TODO: does this also need latency?  # I will wait 200ms for all my responses to come in
-            #self.log.debug(str(process) + "events added to queue")
         # Execute event queue
         self.log.debug("All events added to queue. Executing queue")
         self.log.debug("EventQueue size: " + str(len(self.eventQueue)))
@@ -111,17 +108,15 @@ class EIGSimulator:
             t, _, e = heapq.heappop(self.eventQueue)
             if EVENT_TRACE:
                 print(str(e) + " at time " + str(t))
-            #self.log.debug("Dispatching " + str(e))
             e.dispatch()
-        #self.log.debug("Event queue executed")
+        self.log.debug("Event queue executed")
         # Ask processes to update their trees
         for process in self.processes:
-            #self.log.debug("Updating tree for: " + str(process))
-            process.updateTree()
-        #self.log.debug("End round " + str(self.getRoundNum()))
+            process.updateTree() # TODO: rename this?
+        self.log.debug("End round " + str(self.getRoundNum()))
         self.round += 1
 
-    # Weird way of calculating random latency but couldn't figure out a different way to have values more likely to be close to 0 but also stay within a predefined range
+    # TODO: Google latency distributions and make this make more sense
     def getProcessLatency(self):
         firstVal = random.rand()
         if firstVal < .5:
@@ -139,9 +134,6 @@ class EIGSimulator:
 
     def getRoundNum(self):
         return self.round
-
-    # def removeFromQueue(self, event):
-    #     self.eventQueue.removeByEvent(event)
 
     def addToQueue(self, event, t):
         heapq.heappush(self.eventQueue, (t, id(event), event))
@@ -166,6 +158,6 @@ def test():
     print()
     print("done")
 
-if __name__ == '__main__':
-    sim = EIGSimulator()
-    cProfile.runctx('sim.runEIGProtocol()', globals(), locals())
+# if __name__ == '__main__':
+#     sim = EIGSimulator()
+#     cProfile.runctx('sim.runEIGProtocol()', globals(), locals())

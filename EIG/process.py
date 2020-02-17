@@ -20,6 +20,7 @@ NOISE_RANGE = (1, 200)  # Gaussian sample from range ?
 
 class Process:
     def __init__(self, name):
+        self.receive = True
         self.name = name
         self.round = 0
 
@@ -38,20 +39,13 @@ class Process:
         raise NotImplementedError("Decision function must be implemented by subclasses")
 
     def sendToAll(self, network, latency):
-        # lower level send and receive methods than broadcast
-        # Broadcast "makes this thing happen"
-        # receive method stores bit that stores whether we're in broadcast
         for node in self.tree.getLevel(network.getRoundNum() - 1):
             if self not in node.getParents():
                 if node.val != None:
                     self.broadcast(node, network, latency)
-        # self.lastTimeoutQueued = TimeoutEvent(self, network)
-        # return self.lastTimeoutQueued
 
     def broadcast(self, node, network, latency):  # TODO: t here?
         raise NotImplementedError("Broadcast method must be implemented by subclasses")
-        #call some global function with sender, receiver and time as input, and latency
-        # system call to send messages
 
     def decide(self, node, network):
         if node.getChildren() == False:
@@ -69,32 +63,34 @@ class Process:
             for val in repeated.keys():
                 if repeated[val] >= len(network.getProcesses()) - len(node.getParents()) - network.getMaxByz():
                     return val
+                else:
+                    network.log.debug("No agreement on a value at this level.")
 
     def receive(self, sender, node, network):
-        # If currently in broadcast do this , otherwise do that
-        # or separate broadcast receive function
-        assert(len(self.tree.tree) == network.getRoundNum())
-        newParents = node.parents[:]
-        newParents.append(sender)
-        newVal = node.val
-        newNode = EIGNode(newVal, newParents)
-        self.tree.getNodeFromParents(node.parents).updateChildren(newNode)
-        self.currentLevel.append(newNode)
-        self.receivedFromThisRound.append(sender)
-        # if len(self.currentLevel) >= len(network.getProcesses()):
-        #     network.log.debug(str(self) + "Removing timeout for " + str(self))
-        #     network.removeFromQueue(self.lastTimeoutQueued)
+        if self.receive == True:
+            newParents = node.parents[:]
+            newParents.append(sender)
+            newVal = node.val
+            newNode = EIGNode(newVal, newParents)
+            self.tree.getNodeFromParents(node.parents).updateChildren(newNode)
+            self.currentLevel.append(newNode)
+            self.receivedFromThisRound.append(sender)
 
     def updateTree(self):
         self.tree.addLevel(self.currentLevel)
         self.currentLevel = []
         self.receivedFromThisRound = []
+        self.receive = True
 
     def getEIGRoot(self):
         return self.tree.getRoot()
 
     def printEIGLevels(self):
         return self.tree.printVals()
+
+    def timeout(self):
+        self.receive = False
+
 
 ## Honest Process ##
 
@@ -117,16 +113,6 @@ class HonestProcess(Process):
             if receiver not in node.getParents():
                 event = ReceiveEvent(self, receiver, node, network)
                 network.addToQueue(event, latency)
-
-    # def timeout(self, network):  # no, processes are recieving multiple messages from each other processor during each round
-    #     timedOut = []
-    #     for process in network.getProcesses():
-    #         if process not in self.receivedFromThisRound:
-    #             timedOut.append(process)
-    #     for process in timedOut:
-    #         newNode = newNode = EIGNode(None, node.parents.append(sender))
-    #     self.currentLevel.append(newNode)
-
 
 
 ## Byzantine Node ##
