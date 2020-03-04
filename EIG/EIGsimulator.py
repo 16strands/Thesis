@@ -17,7 +17,7 @@ import heapq
 
 HONEST_COUNT = 10
 BYZ_COUNT = 2
-# CRASHED_COUNT = 0 # could check to make sure it's also crash tolerant
+# CRASHED_COUNT = 0
 TOTAL_COUNT = BYZ_COUNT + HONEST_COUNT
 MAX_TOLERATED_BYZ = int(TOTAL_COUNT / 3) + 1  # TODO: check this
 
@@ -37,15 +37,20 @@ class EIGSimulator:
 
     def __init__(self):
         self.log = self.__setUpLogger()
+
         self.byzProcesses = self.__initByzProcesses()
         self.honestProcesses = self.__initHonestProcesses()
-        self.eventQueue = []
-        heapq.heapify(self.eventQueue)
         self.processes = self.honestProcesses + self.byzProcesses
         shuffle(self.processes)
+
+        self.eventQueue = []
+        heapq.heapify(self.eventQueue)
+
         self.round = 1
         self.latencyMax = 500
         # self.latencyMax = START_LATENCY_MAX / (self.round + 1) # TODO: Make this dependent on GSR
+
+        self.globalTime = 0
 
     def __setUpLogger(self):
         logger = logging.getLogger(__name__)
@@ -99,8 +104,7 @@ class EIGSimulator:
         # Populate the event queue
         self.log.debug("Begin round " + str(self.getRoundNum()))
         for process in self.processes:
-            latency = self.getProcessLatency()
-            process.sendToAll(self, latency)
+            process.sendToAll(self)
         # Execute event queue
         self.log.debug("All events added to queue. Executing queue")
         self.log.debug("EventQueue size: " + str(len(self.eventQueue)))
@@ -115,16 +119,6 @@ class EIGSimulator:
             process.updateTree() # TODO: rename this?
         self.log.debug("End round " + str(self.getRoundNum()))
         self.round += 1
-
-    # TODO: Google latency distributions and make this make more sense
-    def getProcessLatency(self):
-        firstVal = random.rand()
-        if firstVal < .5:
-            return random.randint(0, self.latencyMax//4)
-        elif firstVal < .75:
-            return random.randint(0, self.latencyMax//2)
-        else:
-            return random.randint(0, self.latencyMax)
 
     def getProcesses(self):
         return self.processes
