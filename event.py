@@ -30,29 +30,6 @@ class TimeoutEvent(GlobalEvent):
         return "TimeoutEvent(" + str(self.sender) + ")"
 
     def dispatch(self):
-        self.sender.timeout(self.network)
-
-
-class BeginEvent(GlobalEvent):
-    def __init__(self, network):
-        GlobalEvent.__init__(self, None, network)
-
-    def __str__(self):
-        return "BeginEvent"
-
-    def dispatch(self):
-        for process in self.network.getProcesses():
-            process.sendToAll(self.network)
-
-class DecisionEvent(GlobalEvent):
-    def __init__(self, sender, decision, network):
-        GlobalEvent.__init__(self, sender, network)
-        self.decision = decision
-
-    def __str__(self):
-        return "DecisionEvent(" + str(self.decision) + ") from: " + str(self.sender)
-
-    def dispatch(self):
-        return (self.sender.isHonest(), self.decision)
+        self.sender.timeout()
 
 

@@ -12,21 +12,21 @@ from random import shuffle
 from numpy import random
 import logging
 import heapq
-from event import BeginEvent
 
 ## CONSTANTS ##
 
 HONEST_COUNT = 10
-BYZ_COUNT = 10
+BYZ_COUNT = 2
 # CRASHED_COUNT = 0
 TOTAL_COUNT = BYZ_COUNT + HONEST_COUNT
-MAX_TOLERATED_BYZ = int(TOTAL_COUNT / 3) - 1
+MAX_TOLERATED_BYZ = int(TOTAL_COUNT / 3) + 1  # TODO: check this
 
-START_VAL_HONEST = 5
-VAL_RANGE = (1, 1)
+START_VAL_HONEST = 0
+VAL_RANGE = (1, 2)
 
+START_LATENCY_MAX = 500
 TIMEOUT = 200  # time after current time that timeout will be executed
-GSR = 5  # TODO: ???
+GSR = 5
 
 EVENT_TRACE = False # enable for verbose mode
 
@@ -41,7 +41,6 @@ class EIGSimulator:
         self.byzProcesses = self.__initByzProcesses()
         self.honestProcesses = self.__initHonestProcesses()
         self.processes = self.honestProcesses + self.byzProcesses
-        # Randomize the list of processes just in case
         shuffle(self.processes)
 
         self.eventQueue = []
@@ -49,6 +48,7 @@ class EIGSimulator:
 
         self.round = 1
         self.latencyMax = 500
+        # self.latencyMax = START_LATENCY_MAX / (self.round + 1) # TODO: Make this dependent on GSR
 
         self.globalTime = 0
 
@@ -70,7 +70,7 @@ class EIGSimulator:
         honestProcesses = []
         for i in range(HONEST_COUNT):
             processName = "p" + str(i)
-            honestProcesses.append(process.HonestProcess(processName, GSR, START_VAL_HONEST))
+            honestProcesses.append(process.HonestProcess(processName, START_VAL_HONEST))
         self.log.debug(str(len(honestProcesses)) + " honest processes initiated")
         return honestProcesses
 
@@ -78,7 +78,7 @@ class EIGSimulator:
         byzantineProcesses = []
         for i in range(BYZ_COUNT):
             processName = "byz" + str(i)
-            byzantineProcesses.append(process.ByzantineProcess(processName, GSR, VAL_RANGE))
+            byzantineProcesses.append(process.ByzantineProcess(processName, VAL_RANGE))
         self.log.debug(str(len(byzantineProcesses)) + " byzantine processes initiated")
         return byzantineProcesses
 
@@ -86,24 +86,39 @@ class EIGSimulator:
         self.log.debug("Running EIG protocol")
         honestDecisions = []
         byzDecisions = []
-        beginEvent = BeginEvent(self)
-        self.addToQueue(beginEvent, 0)
+        for r in range(MAX_TOLERATED_BYZ):
+            self.executeRound(r)
+            print("round complete")
+        for process in self.processes:
+            decision = process.decide(process.getEIGRoot(), self)
+            self.log.debug(str(process) + "DECISION: " + str(decision))
+            if process.isHonest():
+                honestDecisions.append(decision)
+            else:
+                byzDecisions.append(decision)
+        self.log.debug("HONEST DECISION VECTOR: " + str(honestDecisions))
+        self.log.debug("BYZANTINE DECISION VECTOR: " + str(byzDecisions))
+        self.log.debug("EIG protocol finished")
+
+    def executeRound(self, round):
+        # Populate the event queue
+        self.log.debug("Begin round " + str(self.getRoundNum()))
+        for process in self.processes:
+            process.sendToAll(self)
+        # Execute event queue
+        self.log.debug("All events added to queue. Executing queue")
+        self.log.debug("EventQueue size: " + str(len(self.eventQueue)))
         while len(self.eventQueue) > 0:
             t, _, e = heapq.heappop(self.eventQueue)
             if EVENT_TRACE:
                 print(str(e) + " at time " + str(t))
-            decision = e.dispatch()
-            if decision:
-                if decision[0] == True:
-                    honestDecisions.append(decision[1])
-                else:
-                    byzDecisions.append(decision[1])
-            self.globalTime = t  # TODO: fix this
-            print(self.globalTime)
-        self.log.debug("Event queue finished")
-        self.log.debug("HONEST DECISION VECTOR: " + str(honestDecisions))
-        self.log.debug("BYZANTINE DECISION VECTOR: " + str(byzDecisions))
-        self.log.debug("EIG protocol finished")
+            e.dispatch()
+        self.log.debug("Event queue executed")
+        # Ask processes to update their trees
+        for process in self.processes:
+            process.updateTree() # TODO: rename this?
+        self.log.debug("End round " + str(self.getRoundNum()))
+        self.round += 1
 
     def getProcesses(self):
         return self.processes
@@ -115,17 +130,14 @@ class EIGSimulator:
         return self.round
 
     def addToQueue(self, event, t):
-        heapq.heappush(self.eventQueue, (t + self.globalTime, id(event), event))
+        heapq.heappush(self.eventQueue, (t, id(event), event))
 
     def getMaxByz(self):
         return MAX_TOLERATED_BYZ
 
-    def getGlobalTime(self):
-        return self.globalTime
 
 
-
-## Simple smoke tests ##
+## Simple smoke test ##
 
 def test():
     simulator = EIGSimulator()
@@ -139,10 +151,6 @@ def test():
     print(simulator.processes)
     print()
     print("done")
-
-def test2():
-    sim = EIGSimulator()
-    sim.runEIGProtocol()
 
 # if __name__ == '__main__':
 #     sim = EIGSimulator()
