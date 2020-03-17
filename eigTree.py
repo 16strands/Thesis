@@ -1,15 +1,20 @@
-## EIG Node ##
-
-# This isn't a tree in the typical sense but this seems to be what the paper does
+##############
+## EIG Tree ##
+##############
 
 class EIGNode():
-    def __init__(self, val, parents):
+    def __init__(self, val, parents, round):
         self.val = val # Value transmitted
         self.parents = parents # List of processes who signed off on this value
         self.children = []
+        self.round = round
+
+    # def __repr__(self):
+    #     rep = "val: " + str(self.val) + ", parents: " + str(self.parents)
+    #     return rep
 
     def __repr__(self):
-        rep = "val: " + str(self.val) + ", parents: " + str(self.parents)
+        rep = "val: " + str(self.val) + ", round: " + str(self.round)
         return rep
 
     def updateChildren(self, node):
@@ -72,7 +77,7 @@ class EIGTree():
             for node in self.tree[i]:
                 parents = []
                 for parent in node.getParents():
-                    parents.append(parent.name)
+                    parents.append(parent)
                 valList.append([node.val, parents])
             print("Level " + str(i) + ":  " + str(valList) + "\n")
 
