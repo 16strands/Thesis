@@ -13,16 +13,16 @@ from event import ReceiveEvent, TimeoutEvent
 ## Constants ##
 
 TIMEOUT = 200 # TODO figure out good timeout number
-NOISE_RANGE = (1, 200)  # Gaussian sample from range ?
 
 
 ## Process Superclass ##
 
 class Process:
     def __init__(self, name):
-        self.receive = True
+        self.receiving = True
         self.name = name
         self.round = 0
+        self.baseLatency = 20 # TODO: write function to slightly randomize this
 
     def __repr__(self):
         rep = "(Name: " + str(self.name) + ", InitVal: " + str(self.initialValue) + ") "
@@ -38,11 +38,13 @@ class Process:
     def decide(self, node):
         raise NotImplementedError("Decision function must be implemented by subclasses")
 
-    def sendToAll(self, network, latency):
+    def sendToAll(self, network):
         for node in self.tree.getLevel(network.getRoundNum() - 1):
             if self not in node.getParents():
                 if node.val != None:
                     self.broadcast(node, network, latency)
+        timeoutEvent = TimeoutEvent(self, network)
+        network.addToQueue(timeoutEvent, TIMEOUT + self.baseLatency)
 
     def broadcast(self, node, network, latency):  # TODO: t here?
         raise NotImplementedError("Broadcast method must be implemented by subclasses")
@@ -61,13 +63,13 @@ class Process:
                 else:
                     repeated[val] = 1
             for val in repeated.keys():
-                if repeated[val] >= len(network.getProcesses()) - len(node.getParents()) - network.getMaxByz():
+                if repeated[val] >= len(network.getProcesses()) - len(node.getParents()) - network.getMaxByz(): # TODO: check for condition of correctness
                     return val
                 else:
                     network.log.debug("No agreement on a value at this level.")
 
-    def receive(self, sender, node, network):
-        if self.receive == True:
+    def receive(self, sender, node, network):  # TODO: parameter not used
+        if self.receiving == True:
             newParents = node.parents[:]
             newParents.append(sender)
             newVal = node.val
@@ -80,7 +82,7 @@ class Process:
         self.tree.addLevel(self.currentLevel)
         self.currentLevel = []
         self.receivedFromThisRound = []
-        self.receive = True
+        self.receiving = True
 
     def getEIGRoot(self):
         return self.tree.getRoot()
