@@ -8,6 +8,7 @@ ______
 ## TODO (started 3/16/20)
 - [x] Implement EIG
 - [x] Implement global time
+- [x] Allow for floats in eventQueue to prohibit simultaneous events
 - [ ] Better estimation of realistic latencies / clock drift logic
 - [ ] Clock synchronization protocols probably exist, look at them to figure out how rounds are controlled
 - [ ] GSR logic

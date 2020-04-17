@@ -18,8 +18,11 @@ class ReceiveEvent(GlobalEvent):
         self.receiver = receiver
         self.message = message
 
+    # def __str__(self):
+    #     return "ReceiveEvent(" + str(self.message) + ") from: " + str(self.sender.name) + " to: " + str(self.receiver.name)
+
     def __str__(self):
-        return "ReceiveEvent(" + str(self.message) + ") from: " + str(self.sender) + " to: " + str(self.receiver)
+        return "ReceiveEvent(from: " + str(self.sender.name) + " to: " + str(self.receiver.name) + ")"
 
     def dispatch(self):
         self.receiver.receive(self.sender, self.message, self.network)
@@ -30,7 +33,7 @@ class TimeoutEvent(GlobalEvent):
         GlobalEvent.__init__(self, sender, network)
 
     def __str__(self):
-        return "TimeoutEvent(" + str(self.sender) + ")"
+        return "TimeoutEvent(" + str(self.sender.name) + ")"
 
     def dispatch(self):
         self.sender.timeout(self.network)
@@ -47,16 +50,14 @@ class BeginEvent(GlobalEvent):
         for process in self.network.getProcesses():
             process.sendToAll(self.network)
 
-# Ending event to trigger decision making
+# Ending event to return decision vectors to main simulation
 class DecisionEvent(GlobalEvent):
-    def __init__(self, sender, decision, network):
+    def __init__(self, sender, decisionVector, network):
         GlobalEvent.__init__(self, sender, network)
-        self.decision = decision
+        self.decisionVector = decisionVector
 
     def __str__(self):
-        return "DecisionEvent(" + str(self.decision) + ") from: " + str(self.sender)
+        return "DecisionEvent(" + str(self.decisionVector) + ") from: " + str(self.sender.name)
 
     def dispatch(self):
-        return (self.sender.isHonest(), self.decision)
-
-
+        return (self.sender, self.sender.isHonest(), self.decisionVector)
