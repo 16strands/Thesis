@@ -9,7 +9,6 @@
 import cProfile
 import process
 from random import shuffle
-from numpy import random
 import logging
 import heapq
 from event import BeginEvent, TimeoutEvent, ReceiveEvent, DecisionEvent
@@ -17,19 +16,11 @@ from termcolor import colored
 
 ## CONSTANTS ##
 
-HONEST_COUNT = 10
-BYZ_COUNT = 2
-HONEST_PRINTER_COUNT = 0
-TOTAL_COUNT = BYZ_COUNT + HONEST_COUNT + HONEST_PRINTER_COUNT
-MAX_TOLERATED_BYZ = int(TOTAL_COUNT / 3) - 1
-
-START_VAL_HONEST = 5
-VAL_RANGE = (1, 1)
+START_VAL_HONEST = 1
+VAL_RANGE = (0,1)
 
 TIMEOUT = 200  # time after current time that timeout will be executed
 GSR = 5  # TODO: implement global stabilization round
-
-EVENT_TRACE = False # enable for verbose mode
 
 # Parameters
 E_THRESHOLD = 5
@@ -39,14 +30,17 @@ T_THRESHOLD = 5
 
 class Simulator:
 
-    def __init__(self):
+    def __init__(self, numHonest=5, numByzantine=1, printer=False, event_trace=False):
+        self.event_trace = event_trace
         # set up logger
         self.log = self.__setUpLogger()
         # initialize processes
-        self.byzProcesses = self.__initByzProcesses()
-        self.honestProcesses = self.__initHonestProcesses()
-        self.honestPrinterProcesses = self.__initHonestPrinterProcesses()
-        self.processes = self.honestProcesses + self.byzProcesses + self.honestPrinterProcesses
+        self.honestProcesses = self.__initHonestProcesses(numHonest)
+        self.byzProcesses = self.__initByzProcesses(numByzantine)
+        self.honestPrinterProcess = []
+        if printer:
+            self.honestPrinterProcess = self.__initHonestPrinterProcess()
+        self.processes = self.honestProcesses + self.byzProcesses + self.honestPrinterProcess
         # Randomize the list of processes just in case
         shuffle(self.processes)
         # set up event queue
@@ -74,27 +68,26 @@ class Simulator:
         return logger
 
     # initialize honest processes
-    def __initHonestProcesses(self):
+    def __initHonestProcesses(self, numHonest):
         honestProcesses = []
-        for i in range(HONEST_COUNT):
+        for i in range(numHonest):
             processName = "p" + str(i)
             honestProcesses.append(process.HonestProcess(processName, GSR, START_VAL_HONEST))
         self.log.debug(str(len(honestProcesses)) + " honest processes initiated")
         return honestProcesses
 
     # initialize honest printer processes
-    def __initHonestPrinterProcesses(self):
+    def __initHonestPrinterProcess(self):
         honestPrinterProcesses = []
-        for i in range(HONEST_PRINTER_COUNT):
-            processName = "pp" + str(i)
-            honestPrinterProcesses.append(process.HonestPrinterProcess(processName, GSR, START_VAL_HONEST))
-        self.log.debug(str(len(honestPrinterProcesses)) + " honest processes initiated")
+        processName = "printer"
+        honestPrinterProcesses.append(process.HonestPrinterProcess(processName, GSR, START_VAL_HONEST))
+        self.log.debug("Printer process initiated")
         return honestPrinterProcesses
 
     # initialize byzantine processes
-    def __initByzProcesses(self):
+    def __initByzProcesses(self, numByz):
         byzantineProcesses = []
-        for i in range(BYZ_COUNT):
+        for i in range(numByz):
             processName = "byz" + str(i)
             byzantineProcesses.append(process.ByzantineProcess(processName, GSR, VAL_RANGE))
         self.log.debug(str(len(byzantineProcesses)) + " byzantine processes initiated")
@@ -112,7 +105,7 @@ class Simulator:
         # dispatch events in eventQueue until it is empty
         while len(self.eventQueue) > 0:
             t, _, e = heapq.heappop(self.eventQueue)
-            if EVENT_TRACE:
+            if self.event_trace:
                 if isinstance(e, TimeoutEvent):
                     print(colored(str(e) + " at time " + str(t), 'red'))
                 elif isinstance(e, ReceiveEvent):
@@ -121,8 +114,6 @@ class Simulator:
                     print(colored(str(e) + " at time " + str(t), 'orange'))
                 else:
                     print(str(e) + " at time " + str(t))
-            # if isinstance(e, TimeoutEvent):
-            #     print(str(e) + " at time " + str(t))
             self.globalTime = t
             decision = e.dispatch()
             if decision:
@@ -130,26 +121,19 @@ class Simulator:
                     honestDecisions.append([decision[0], decision[2]])
                 else:
                     byzDecisions.append([decision[0], decision[2]])
-
-            # if isinstance(e, TimeoutEvent):
-            #     print(str(e))
-            #     print(self.globalTime)
-            # print(self.globalTime)
         self.log.debug("HONEST DECISION VECTORS: " + str(honestDecisions))
         self.log.debug("BYZANTINE DECISION VECTORS: " + str(byzDecisions))
         self.log.debug("EIG protocol finished")
+        return (honestDecisions, byzDecisions)
 
     def getProcesses(self):
         return self.processes
-
-    def getEventQueue(self):
-        return self.eventQueue
 
     def addToQueue(self, event, t):
         heapq.heappush(self.eventQueue, (t + self.globalTime, id(event), event))
 
     def getMaxByz(self):
-        return MAX_TOLERATED_BYZ
+        return (len(self.getProcesses())/3) - 1
 
     def getGlobalTime(self):
         return self.globalTime
@@ -162,32 +146,6 @@ class Simulator:
             self.runEIGProtocol()  # this seems very synchronous to wait until this completes to move on
             for process in self.processes:
                 process.endMicroRound(self)
-
-
-
-
-
-
-
-
-## Simple smoke tests ##
-
-def test():
-    simulator = Simulator()
-    print("Honest Processes:")
-    print(simulator.honestProcesses)
-    print()
-    print("Byzantine Processes:")
-    print(simulator.byzProcesses)
-    print()
-    print("Total Processes:")
-    print(simulator.processes)
-    print()
-    print("done")
-
-def test2():
-    sim = Simulator()
-    sim.runEIGProtocol()
 
 # if __name__ == '__main__':
 #     sim = Simulator()

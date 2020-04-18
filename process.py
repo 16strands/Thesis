@@ -6,15 +6,15 @@
 ## Imports ##
 
 import random
-from eigTree import EIGNode, EIGTree
+from eigNode import EIGNode
 from event import ReceiveEvent, TimeoutEvent, DecisionEvent
 from termcolor import colored
 from treelib import Tree
 
 ## Constants ##
 
-LATENCY_MAX = 1.0
-TIMEOUT = 20.0 # TODO figure out good timeout number
+LATENCY_MAX = 20.0
+TIMEOUT = 200.0 # TODO figure out good timeout number
 DRIFT = 0
 
 ## Process Superclass ##
@@ -35,13 +35,13 @@ class Process:
     #     return rep
 
     # only prints name
-    #
-    # def __repr__(self):
-    #     return str(self.name)
+
+    def __repr__(self):
+        return str(self.name)
 
     # prints name, round, and drift
-    def __repr__(self):
-        return str(self.name) + ", " + str(self.round) + ", " + str(self.drift)
+    # def __repr__(self):
+    #     return str(self.name) + ", " + str(self.round) + ", " + str(self.drift)
 
     # TODO: make this better, make it work with alg2 & gsr, as in the GSR needs to be _global_ and not within each EIG run
     def updateDrift(self):
@@ -134,9 +134,6 @@ class Process:
         for child in self.tree.children("root"):
             decision = self.decideHelper(child, network)
             decisionVector.append(decision)
-        print("deciiosnVector" + str(decisionVector))
-        print("length of decision vector: " + str(len(decisionVector)))
-        print("expected length: " + str(numOtherProcesses))
         assert(len(decisionVector) == numOtherProcesses)
         self.decisionVector = decisionVector
 
@@ -147,19 +144,16 @@ class Process:
         if self.round == node.round:
             if self.isPrinter():
                 print(colored("rounds correct, adding item to tree " + str(self.round), 'green'))
-            # print(node.getParentsString())
-            # print(node.getParentParentsString())
             self.tree.create_node(node.getParentsString(), node.getParentsString(), parent=node.getParentParentsString(), data=node)
         else:
             if self.isPrinter():
-                print(colored("rounds incorrect, ignoring " + str(self.round), 'red'))
+                print(colored("rounds incorrect, adding None val " + str(self.round), 'red'))
+            newParents = node.parents[:]
+            newVal = None
+            newNode = EIGNode(newVal, newParents, self.round)
+            self.tree.create_node(node.getParentsString(), node.getParentsString(), parent=node.getParentParentsString(), data=newNode)
             network.log.debug(str(self) + " missed input in round " + str(self.round) + " from " + str(sender))
             network.log.debug(str(node))
-    #
-    # def getEIGRoot(self):
-    #     print("getEIGROot")
-    #     print(str(self.tree.get_node("root")))
-    #     return self.tree.get_node("root")
 
     # increment round, update EIG tree, update drift, call sendToAll
     def timeout(self, network):
@@ -217,8 +211,6 @@ class HonestProcess(Process):
                 event = ReceiveEvent(self, receiver, node, network)
                 delay = self.drift + random.uniform(0, LATENCY_MAX)
                 network.addToQueue(event, delay)
-            # else:
-            #     print("yay!215")
 
     # For Alg2. Update initialValue if applicable, reset tree, currentLevel, decisionVector, and round
     def endMicroRound(self, network):
@@ -269,8 +261,6 @@ class ByzantineProcess(Process):
                 event = ReceiveEvent(self, receiver, newNode, network)
                 delay = self.drift + random.uniform(0, LATENCY_MAX)
                 network.addToQueue(event, delay)
-            # else:
-            #     print("yay!byz")
 
     # For Alg2. Randomize initialValues, reset tree, currentLevel, decisionVector, and round
     def endMicroRound(self, network):
@@ -316,8 +306,6 @@ class HonestPrinterProcess(Process):
                 print(colored("Event has delay of: " + str(delay), 'blue'))
                 print("global time: ", network.getGlobalTime())
                 network.addToQueue(event, delay)
-            # else:
-            #     print("yay!")
 
     # For Alg2. Update initialValue if applicable, reset tree, currentLevel, decisionVector, and round
     def endMicroRound(self, network):
