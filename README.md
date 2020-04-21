@@ -10,21 +10,27 @@ ______
 - [x] Implement global time
 - [x] Allow for floats in eventQueue to prohibit simultaneous events
 - [x] Have receive function add 'None' to tree when no value is received during that round
-- [ ] Pull all global vars into separate file
+- [x] Order decision vectors correctly
 - [ ] Verify that printerProcesses work the same as honestProcesses
 - [x] Make test file (at least for easier command line testing)
-- [ ] Better estimation of realistic latencies / clock drift logic
+- [x] Better estimation of realistic latencies
 - [ ] Clock synchronization protocols probably exist, look at them to figure out how rounds are controlled
 - [ ] GSR logic
-- [ ] Add something to check and report pass/fail of consensus requirements at the end of protocol for each process
+- [x] Add something to check and report pass/fail of consensus requirements at the end of protocol for each process
 - [x] Make processes compute decision vectors
 - [x] Abstract EIG for use in algorithms 2 & 3
 - [ ] Finish implementing Algorithm 2
-- [ ] Implement Algorithm 3
+- [ ] Implement Algorithm 3 (maybe)
 
 
 ## NOTES
 ---
+
+#### Latency
+Latency is modeled using a lognormal distribution because it looks about right. This is the code:
+`(numpy.random.lognormal(0.8, 0.5))*10`
+Use  [this](https://stackoverflow.com/questions/8870982/how-do-i-get-a-lognormal-distribution-in-python-with-mu-and-sigma "stackoverflow on how to plot this thing") to figure out how to generate a pdf and cdf.
+
 #### Priority Queue
 * how to make the queue simulate asynchrony?
     - start with varying latencies and make them converge after a certain point?

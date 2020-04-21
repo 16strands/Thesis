@@ -35,10 +35,18 @@ class EIGNode():
             ret = ret + str(parent.name)
         return ret
 
-    def getParentParentsString(self):
+    def getGrandparentsString(self):
         ret = ""
         if (len(self.parents) == 1):
             return "root"
         for i in range(len(self.parents) - 1):
+            ret = ret + str(self.parents[i].name)
+        return ret
+
+    def getGreatGrandparentsString(self):
+        ret = ""
+        if (len(self.parents) <= 2):
+            return "root"
+        for i in range(len(self.parents) - 2):
             ret = ret + str(self.parents[i].name)
         return ret

@@ -19,7 +19,6 @@ from termcolor import colored
 START_VAL_HONEST = 1
 VAL_RANGE = (0,1)
 
-TIMEOUT = 200  # time after current time that timeout will be executed
 GSR = 5  # TODO: implement global stabilization round
 
 # Parameters
@@ -30,7 +29,7 @@ T_THRESHOLD = 5
 
 class Simulator:
 
-    def __init__(self, numHonest=5, numByzantine=1, printer=False, event_trace=False):
+    def __init__(self, numHonest=15, numByzantine=4, printer=False, event_trace=False):
         self.event_trace = event_trace
         # set up logger
         self.log = self.__setUpLogger()
@@ -46,11 +45,14 @@ class Simulator:
         # set up event queue
         self.eventQueue = []
         heapq.heapify(self.eventQueue)
-
+        # initialize global time
         self.globalTime = 0.0
-
+        # set thresholds for alg2
         self.tThreshold = T_THRESHOLD
         self.eThreshold = E_THRESHOLD
+        # calculate maximum tolerated byzantine processes
+        self.total_count = len(self.processes)
+        self.maxByz = (self.total_count//3) - 1
 
     # set up logger
     def __setUpLogger(self):
@@ -96,7 +98,7 @@ class Simulator:
     # run eig protocol
     def runEIGProtocol(self):
         self.log.debug("Running EIG protocol")
-        # initialize byzantine vectors for debugging
+        # initialize decision vectors
         honestDecisions = []
         byzDecisions = []
         # create beginning event and add to queue
@@ -104,6 +106,7 @@ class Simulator:
         self.addToQueue(beginEvent, 0)
         # dispatch events in eventQueue until it is empty
         while len(self.eventQueue) > 0:
+            # pop time and event
             t, _, e = heapq.heappop(self.eventQueue)
             if self.event_trace:
                 if isinstance(e, TimeoutEvent):
@@ -114,7 +117,9 @@ class Simulator:
                     print(colored(str(e) + " at time " + str(t), 'orange'))
                 else:
                     print(str(e) + " at time " + str(t))
+            # set global time to the time of each event as it is popped off the queue
             self.globalTime = t
+            # dispatch event
             decision = e.dispatch()
             if decision:
                 if decision[1] == True:
@@ -133,7 +138,7 @@ class Simulator:
         heapq.heappush(self.eventQueue, (t + self.globalTime, id(event), event))
 
     def getMaxByz(self):
-        return (len(self.getProcesses())/3) - 1
+        return self.maxByz
 
     def getGlobalTime(self):
         return self.globalTime
@@ -143,10 +148,12 @@ class Simulator:
         decided = False
         phi = 1
         while decided != True:
-            self.runEIGProtocol()  # this seems very synchronous to wait until this completes to move on
-            for process in self.processes:
-                process.endMicroRound(self)
+            for process in self.getProcesses():
+                process.endMicroRound(T_THRESHOLD)
 
-# if __name__ == '__main__':
-#     sim = Simulator()
-#     cProfile.runctx('sim.runEIGProtocol()', globals(), locals())
+
+
+
+if __name__ == '__main__':
+    sim = Simulator()
+    cProfile.runctx('sim.runEIGProtocol()', globals(), locals())
