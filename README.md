@@ -24,7 +24,6 @@ ______
 
 
 ## NOTES
----
 
 #### Latency
 Latency is modeled using a lognormal distribution because it looks about right. This is the code:
@@ -33,7 +32,7 @@ Use  [this](https://stackoverflow.com/questions/8870982/how-do-i-get-a-lognormal
 
 #### Priority Queue
 * how to make the queue simulate asynchrony?
-    - start with varying latencies and make them converge after a certain point?
+    - start with varying drifts and make them converge after a certain point (gsr)
 
 
 #### Possible Measurements
