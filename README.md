@@ -11,16 +11,15 @@ ______
 - [x] Allow for floats in eventQueue to prohibit simultaneous events
 - [x] Have receive function add 'None' to tree when no value is received during that round
 - [x] Order decision vectors correctly
-- [ ] Verify that printerProcesses work the same as honestProcesses
+- [x] Verify that printerProcesses work the same as honestProcesses
 - [x] Make test file (at least for easier command line testing)
 - [x] Better estimation of realistic latencies
-- [ ] Clock synchronization protocols probably exist, look at them to figure out how rounds are controlled
-- [ ] GSR logic
+- [x] GSR logic
 - [x] Add something to check and report pass/fail of consensus requirements at the end of protocol for each process
 - [x] Make processes compute decision vectors
 - [x] Abstract EIG for use in algorithms 2 & 3
-- [ ] Finish implementing Algorithm 2
-- [ ] Implement Algorithm 3 (maybe)
+- [x] Finish implementing Algorithm 2
+- [ ] Optimize EIG (pre-initialize EIG trees)
 
 
 ## NOTES

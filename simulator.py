@@ -11,28 +11,30 @@ import process
 from random import shuffle
 import logging
 import heapq
-from event import BeginEvent, TimeoutEvent, ReceiveEvent, DecisionEvent
+from numpy import random
+from event import BeginEIGEvent, TimeoutEvent, ReceiveEvent, DecisionEvent, Stage2BeginEvent, Stage2EndEvent, Stage2ReceiveEvent
 from termcolor import colored
 
 ## CONSTANTS ##
 
-START_VAL_HONEST = 1
+START_VAL_HONEST = 5
 VAL_RANGE = (0,1)
 
-GSR = 5  # TODO: implement global stabilization round
+## SKEW ##
 
-# Parameters
-E_THRESHOLD = 5
-T_THRESHOLD = 5
+SKEW_RANGE = (0,1000000)
+CORRECTION_RATE_RANGE = (0,1)
 
 ## SIMULATOR ##
 
 class Simulator:
 
-    def __init__(self, numHonest=15, numByzantine=4, printer=False, event_trace=False):
+    def __init__(self, numHonest=11, numByzantine=5, printer=False, event_trace=False, logger=False):
         self.event_trace = event_trace
-        # set up logger
-        self.log = self.__setUpLogger()
+        self.logger = logger
+        if logger:
+            # set up logger
+            self.log = self.__setUpLogger()
         # initialize processes
         self.honestProcesses = self.__initHonestProcesses(numHonest)
         self.byzProcesses = self.__initByzProcesses(numByzantine)
@@ -47,12 +49,13 @@ class Simulator:
         heapq.heapify(self.eventQueue)
         # initialize global time
         self.globalTime = 0.0
-        # set thresholds for alg2
-        self.tThreshold = T_THRESHOLD
-        self.eThreshold = E_THRESHOLD
         # calculate maximum tolerated byzantine processes
         self.total_count = len(self.processes)
-        self.maxByz = (self.total_count//3) - 1
+        self.maxByz = (self.total_count-1)//3
+        self.maxByzWrapper = (self.total_count-1)//5
+        # set thresholds for alg2
+        self.tThreshold = (2*(self.total_count + self.maxByzWrapper))//3
+        self.eThreshold = self.tThreshold
 
     # set up logger
     def __setUpLogger(self):
@@ -74,16 +77,22 @@ class Simulator:
         honestProcesses = []
         for i in range(numHonest):
             processName = "p" + str(i)
-            honestProcesses.append(process.HonestProcess(processName, GSR, START_VAL_HONEST))
-        self.log.debug(str(len(honestProcesses)) + " honest processes initiated")
+            skew = random.uniform(SKEW_RANGE[0], SKEW_RANGE[1])
+            correctionRate = random.uniform(CORRECTION_RATE_RANGE[0], CORRECTION_RATE_RANGE[1])
+            honestProcesses.append(process.HonestProcess(processName, skew, correctionRate, START_VAL_HONEST))
+        if self.logger:
+            self.log.debug(str(len(honestProcesses)) + " honest processes initiated")
         return honestProcesses
 
     # initialize honest printer processes
     def __initHonestPrinterProcess(self):
         honestPrinterProcesses = []
         processName = "printer"
-        honestPrinterProcesses.append(process.HonestPrinterProcess(processName, GSR, START_VAL_HONEST))
-        self.log.debug("Printer process initiated")
+        skew = random.uniform(SKEW_RANGE[0], SKEW_RANGE[1])
+        correctionRate = random.uniform(CORRECTION_RATE_RANGE[0], CORRECTION_RATE_RANGE[1])
+        honestPrinterProcesses.append(process.HonestPrinterProcess(processName, skew, correctionRate, START_VAL_HONEST))
+        if self.logger:
+            self.log.debug("Printer process initiated")
         return honestPrinterProcesses
 
     # initialize byzantine processes
@@ -91,18 +100,22 @@ class Simulator:
         byzantineProcesses = []
         for i in range(numByz):
             processName = "byz" + str(i)
-            byzantineProcesses.append(process.ByzantineProcess(processName, GSR, VAL_RANGE))
-        self.log.debug(str(len(byzantineProcesses)) + " byzantine processes initiated")
+            skew = random.uniform(SKEW_RANGE[0], SKEW_RANGE[1])
+            correctionRate = random.uniform(CORRECTION_RATE_RANGE[0], CORRECTION_RATE_RANGE[1])
+            byzantineProcesses.append(process.ByzantineProcess(processName, skew, correctionRate, VAL_RANGE))
+        if self.logger:
+            self.log.debug(str(len(byzantineProcesses)) + " byzantine processes initiated")
         return byzantineProcesses
 
     # run eig protocol
     def runEIGProtocol(self):
-        self.log.debug("Running EIG protocol")
+        if self.logger:
+            self.log.debug("Running EIG protocol")
         # initialize decision vectors
         honestDecisions = []
         byzDecisions = []
         # create beginning event and add to queue
-        beginEvent = BeginEvent(self)
+        beginEvent = BeginEIGEvent(self)
         self.addToQueue(beginEvent, 0)
         # dispatch events in eventQueue until it is empty
         while len(self.eventQueue) > 0:
@@ -126,9 +139,10 @@ class Simulator:
                     honestDecisions.append([decision[0], decision[2]])
                 else:
                     byzDecisions.append([decision[0], decision[2]])
-        self.log.debug("HONEST DECISION VECTORS: " + str(honestDecisions))
-        self.log.debug("BYZANTINE DECISION VECTORS: " + str(byzDecisions))
-        self.log.debug("EIG protocol finished")
+        if self.logger:
+            self.log.debug("HONEST DECISION VECTORS: " + str(honestDecisions))
+            self.log.debug("BYZANTINE DECISION VECTORS: " + str(byzDecisions))
+            self.log.debug("EIG protocol finished")
         return (honestDecisions, byzDecisions)
 
     def getProcesses(self):
@@ -143,17 +157,53 @@ class Simulator:
     def getGlobalTime(self):
         return self.globalTime
 
-    def runAlg2(self):
-        self.log.debug("Running ALG 2 protocol")
+    def showDecisions(self, decs):
+        print("HONEST DECISION VECTORS")
+        for process in decs[0]:
+            print("Process: " + str(process[0]) + ", Decision Vector: " + str(process[1]))
+        print("BYZANTINE DECISION VECTORS")
+        for process in decs[1]:
+            print("Process: " + str(process[0]) + ", Decision Vector: " + str(process[1]))
+        print()
+
+    def runEIGWrapper(self):
+        if self.logger:
+            self.log.debug("Running ALG 2 protocol")
         decided = False
-        phi = 1
+        decisions = {}
+        phi = 0
         while decided != True:
+            phi += 1
+            print("running EIG")
+            # Stage 1
+            self.runEIGProtocol()
             for process in self.getProcesses():
-                process.endMicroRound(T_THRESHOLD)
+                process.endMicroRound(self.tThreshold)
+            # Stage 2
+            stage2BeginEvent = Stage2BeginEvent(self)
+            self.addToQueue(stage2BeginEvent, self.globalTime)
+            while len(self.eventQueue) > 0:
+                # pop time and event
+                t, _, e = heapq.heappop(self.eventQueue)
+                self.globalTime = t
+                e.dispatch()
+            stage2EndEvent = Stage2EndEvent(self)
+            self.addToQueue(stage2EndEvent, self.globalTime)
+            while len(self.eventQueue) > 0:
+                # pop time and event
+                t, _, e = heapq.heappop(self.eventQueue)
+                self.globalTime = t
+                potentialDecisions = e.dispatch()
+                if potentialDecisions:
+                    for process in potentialDecisions:
+                        if process[0] == True:
+                            decisions[process[2]] = process[1]
+            print(decisions)
+            if len(decisions) == len(self.getProcesses()):
+                decided = True
+        print("Phi: " + str(phi))
+        return decisions
 
-
-
-
-if __name__ == '__main__':
-    sim = Simulator()
-    cProfile.runctx('sim.runEIGProtocol()', globals(), locals())
+# if __name__ == '__main__':
+#     sim = Simulator()
+#     cProfile.runctx('sim.runEIGProtocol()', globals(), locals())
