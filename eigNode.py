@@ -6,7 +6,6 @@ class EIGNode():
     def __init__(self, val, parents, round):
         self.val = val # Value transmitted
         self.parents = parents # List of processes who signed off on this value
-        self.children = []
         self.round = round
 
     def __repr__(self):
@@ -19,12 +18,6 @@ class EIGNode():
 
     # def __repr__(self):
     #     return str(self.val)
-
-    def getChildren(self):
-        if len(self.children) > 0:
-            return self.children
-        else:
-            return False
 
     def getParents(self):
         return self.parents

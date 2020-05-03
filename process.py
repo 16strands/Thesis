@@ -103,31 +103,19 @@ class Process:
             if self.isPrinter():
                 print(colored("sending to all round " + str(self.round), 'blue'))
             for node in self.tree.leaves():
-                if self.round == 0:
-                    if node.data.val != None:
-                        if self.isPrinter():
-                            print(colored("it is round 0, broadcasting " + str(node), 'green'))
-                        newParents = node.data.parents[:]
-                        newVal = node.data.val
-                        newNode = EIGNode(newVal, newParents, self.round)
-                        self.broadcast(newNode, network)
-                if (self not in node.data.getParents()):
+                if self.isPrinter():
+                    print(colored("i am not in parents of " + str(node), 'green'))
+                if node.data.val != None:
                     if self.isPrinter():
-                        print(colored("i am not in parents of " + str(node), 'green'))
-                    if node.data.val != None:
-                        if self.isPrinter():
-                            print(colored("val is not none, broadcasting " + str(node), 'green'))
-                        newParents = node.data.parents[:]
-                        newParents.append(self)
-                        newVal = node.data.val
-                        newNode = EIGNode(newVal, newParents, self.round)
-                        self.broadcast(newNode, network)
-                    elif node.data.val == None:
-                        if self.isPrinter():
-                            print(colored("value is none " + str(node), 'red'))
-                elif self.round != 0:
+                        print(colored("val is not none, broadcasting " + str(node), 'green'))
+                    newParents = node.data.parents[:]
+                    newParents.append(self)
+                    newVal = node.data.val
+                    newNode = EIGNode(newVal, newParents, self.round)
+                    self.broadcast(newNode, network)
+                elif node.data.val == None:
                     if self.isPrinter():
-                        print(colored("i am in parents of " + str(node), 'red'))
+                        print(colored("value is none " + str(node), 'red'))
 
             # add timeout event to queue
             timeoutEvent = TimeoutEvent(self, network)
@@ -147,23 +135,24 @@ class Process:
             vals = []
             for child in self.tree.children(node.data.getParentsString()):
                 vals.append(self.decideHelper(child, network))
-                val = getSmallestMostFrequentVal(vals, threshold=len(network.getProcesses()) - len(child.data.getParents()) - network.getMaxByz())
-                if val != None:
-                    return val
-                else:
-                    if network.logger:
-                        network.log.debug("No agreement on a value at this level.")
-                    if self.isPrinter():
-                        print(colored("no agreement on value at this level of tree", 'red'))
+            val = getSmallestMostFrequentVal(vals)
+
+            if val != None:
+                return val
+            else:
+                if network.logger:
+                    network.log.debug("No agreement on a value at this level.")
+                if self.isPrinter():
+                    print(colored("no agreement on value at this level of tree", 'red'))
 
     def decide(self, network):
         if self.isPrinter():
             print(colored("deciding " + str(self.round), 'blue'))
         decisionVector = []
-        for child in self.tree.children("root"):
+        children = list(self.tree.children("root"))
+        for child in children:
             decision = self.decideHelper(child, network)
             decisionVector.append((child.identifier, decision))
-        decisionVector.append((self.name, self.initialValue))
         decisionVector.sort()
         self.decisionVector = decisionVector
 
@@ -171,7 +160,11 @@ class Process:
     def receive(self, sender, node, network):
         if self.isPrinter():
             print(colored("receiving event from " + str(sender) + " in round " + str(self.round), 'magenta'))
-        if self.round == node.round:
+        if len(node.getParents()) != len(set(node.getParents())):
+            if network.logger:
+                network.log.debug(str(self) + " ignoring node with repeated parents " + str(self.round) + " from " + str(sender))
+                network.log.debug(str(node))
+        elif self.round == node.round:
             if self.isPrinter():
                 print(colored("rounds correct, adding item to tree " + str(self.round), 'green'))
                 # check if tree contains parent node (parent node would not be in the tree if it came in after timeout)
@@ -201,9 +194,9 @@ class Process:
                     thisParents = copy.copy(newParents)
                     if self.round == 0:
                         thisParents = []
-                    if (otherNode != self) & (otherNode not in thisParents):
+                    if (otherNode not in thisParents):
                         thisParents.append(otherNode)
-                        thisParentsString = listToString(thisParents)
+                        thisParentsString =  listToString(thisParents)
                         if (self.tree.contains(thisParentsString) == False):
                             newVal = None
                             newNode = EIGNode(newVal, thisParents, self.round)
@@ -216,7 +209,7 @@ class Process:
             print(colored("timed out for round " + str(self.round), 'blue'))
         if network.logger:
             network.log.debug(str(self) + "ended round: " + str(self.round))
-        self.updateSkew()  # TODO: skew only updates at the end of each round (this is probably fine)
+        self.updateSkew()  # skew updates at the end of each round
         if self.isPrinter():
             print("UPDATED SKEW: ")
             print(self.skew)
@@ -266,18 +259,17 @@ class HonestProcess(Process):
 
     def initializeTree(self):
         tree = Tree()
-        node = EIGNode(self.initialValue, [self], 0)
+        node = EIGNode(self.initialValue, [], 0)
         tree.create_node("root", "root", data=node)
         return tree
 
     # Enqueues one receive event for every other process
     def broadcast(self, node, network):
         for receiver in network.getProcesses():
-            if receiver not in node.getParents():
-                event = ReceiveEvent(self, receiver, node, network)
-                latency = (random.lognormal(0.8, 0.5)) * 10  # See README for latency explanation
-                delay = self.skew + latency
-                network.addToQueue(event, delay)
+            event = ReceiveEvent(self, receiver, node, network)
+            latency = (random.lognormal(0.8, 0.5)) * 10  # See README for latency explanation
+            delay = self.skew + latency
+            network.addToQueue(event, delay)
 
     # For Alg2. Update initialValue if applicable, reset tree, currentLevel, decisionVector, and round
     def endMicroRound(self, threshold):
@@ -322,7 +314,7 @@ class ByzantineProcess(Process):
 
     def initializeTree(self):
         tree = Tree()
-        node = EIGNode(self.initialValue, [self], 0)
+        node = EIGNode(self.initialValue, [], 0)
         tree.create_node("root", "root", data=node)
         return tree
 
@@ -332,13 +324,12 @@ class ByzantineProcess(Process):
     # Enqueues one receive event for every other process, but with random vals from range
     def broadcast(self, node, network):
         for receiver in network.getProcesses():
-            if receiver not in node.getParents():
-                newVal = self.getRandomValFromRange()
-                newNode = EIGNode(newVal, node.getParents(), (self.round))
-                event = ReceiveEvent(self, receiver, newNode, network)
-                latency = (random.lognormal(0.8, 0.5)) * 10  # See README for latency explanation
-                delay = self.skew + latency
-                network.addToQueue(event, delay)
+            newVal = self.getRandomValFromRange()
+            newNode = EIGNode(newVal, node.getParents(), (self.round))
+            event = ReceiveEvent(self, receiver, newNode, network)
+            latency = (random.lognormal(0.8, 0.5)) * 10  # See README for latency explanation
+            delay = self.skew + latency
+            network.addToQueue(event, delay)
 
     # For Alg2. Randomize initialValues, reset tree, currentLevel, decisionVector, and round
     def endMicroRound(self, threshold):
@@ -377,7 +368,7 @@ class HonestPrinterProcess(Process):
 
     def initializeTree(self):
         tree = Tree()
-        node = EIGNode(self.initialValue, [self], 0)
+        node = EIGNode(self.initialValue, [], 0)
         tree.create_node("root", "root", data=node)
         tree.show()
         return tree

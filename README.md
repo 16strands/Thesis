@@ -2,7 +2,8 @@
 #### An undergraduate thesis by Sarah Strand
 ###### Reed College Class of 2020
 
-This is a simulated implementation of algorithms 1, 2, & 3 in the paper "A Leader-Free Byzantine Consensus Algorithm" by Fatemeh Borran and André Schiper (2011). Extended paper with appendices can be found [here](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.178.4470&rep=rep1&type=pdf "A Leader-Free Byzantine Consensus Algorithm").
+This is a simulated implementation of algorithms 1 and 2 from the paper "A Leader-Free Byzantine Consensus Algorithm" by Fatemeh Borran and André Schiper (2011). Extended paper with appendices can be found [here](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.178.4470&rep=rep1&type=pdf "A Leader-Free Byzantine Consensus Algorithm").
+Had I more time, I would have also implemented 3 and 4.
 ______
 
 ## TODO (started 3/16/20)
@@ -20,6 +21,7 @@ ______
 - [x] Abstract EIG for use in algorithms 2 & 3
 - [x] Finish implementing Algorithm 2
 - [ ] Optimize EIG (pre-initialize EIG trees)
+- [ ] Fix global time for insane skew timing?
 
 
 ## NOTES
@@ -29,10 +31,6 @@ Latency is modeled using a lognormal distribution because it looks about right. 
 `(numpy.random.lognormal(0.8, 0.5))*10`
 Use  [this](https://stackoverflow.com/questions/8870982/how-do-i-get-a-lognormal-distribution-in-python-with-mu-and-sigma "stackoverflow on how to plot this thing") to figure out how to generate a pdf and cdf.
 
-#### Priority Queue
-* how to make the queue simulate asynchrony?
-    - start with varying drifts and make them converge after a certain point (gsr)
-
 
 #### Possible Measurements
 * worst case running time when everyone is honest
@@ -41,12 +39,6 @@ Use  [this](https://stackoverflow.com/questions/8870982/how-do-i-get-a-lognormal
 * how do logical vs random adversaries affect speed?
 * how can we achieve worst case bound
 * can we determine how many adversaries there are by measuring number of rounds it takes to come to consensus?
-     
-     
-## QUESTIONS
-* GSR is established by setting a latency range at t=0 and then the range decreases until the GSR and then the range becomes 1 and the clocks are synchronized
-
-
 
 
 

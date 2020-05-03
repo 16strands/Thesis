@@ -22,14 +22,14 @@ VAL_RANGE = (0,1)
 
 ## SKEW ##
 
-SKEW_RANGE = (0,1000000)
+SKEW_RANGE = (0,10000000)
 CORRECTION_RATE_RANGE = (0,1)
 
 ## SIMULATOR ##
 
 class Simulator:
 
-    def __init__(self, numHonest=11, numByzantine=5, printer=False, event_trace=False, logger=False):
+    def __init__(self, numHonest=5, numByzantine=2, printer=False, event_trace=False, logger=False):
         self.event_trace = event_trace
         self.logger = logger
         if logger:
@@ -174,7 +174,6 @@ class Simulator:
         phi = 0
         while decided != True:
             phi += 1
-            print("running EIG")
             # Stage 1
             self.runEIGProtocol()
             for process in self.getProcesses():
@@ -198,12 +197,11 @@ class Simulator:
                     for process in potentialDecisions:
                         if process[0] == True:
                             decisions[process[2]] = process[1]
-            print(decisions)
             if len(decisions) == len(self.getProcesses()):
                 decided = True
-        print("Phi: " + str(phi))
-        return decisions
+            print("Completed round " + str(phi))
+        return phi, decisions
 
-# if __name__ == '__main__':
-#     sim = Simulator()
-#     cProfile.runctx('sim.runEIGProtocol()', globals(), locals())
+if __name__ == '__main__':
+    sim = Simulator()
+    cProfile.runctx('sim.runEIGProtocol()', globals(), locals())
